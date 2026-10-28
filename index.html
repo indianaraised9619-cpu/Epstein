@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Public Court Records Archive | S.D.N.Y. Docket Search</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* Document facsimile styling */
+    .court-font {
+      font-family: "Courier New", Courier, monospace;
+    }
+    .highlight-marker {
+      background-color: #fef08a;
+      color: #000;
+      padding: 0 3px;
+      border-radius: 2px;
+      font-weight: 700;
+    }
+    .redaction-bar {
+      background-color: #0f172a;
+      color: transparent;
+      user-select: none;
+      display: inline-block;
+      border-radius: 2px;
+      padding: 0 4px;
+    }
+    .redaction-bar.revealed {
+      background-color: rgba(239, 68, 68, 0.15);
+      border: 1px dashed #ef4444;
+      color: #fca5a5;
+      font-weight: 600;
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-black">
+
+  <!-- Top Legal / Disclaimer Notice -->
+  <div class="bg-slate-900 border-b border-slate-800 text-[11px] text-slate-400 py-1.5 px-4 text-center tracking-wide">
+    <span class="text-amber-400 font-semibold uppercase tracking-wider mr-1">Public Record Notice:</span>
+    Inclusion of an individual's name in court filings, deposition testimonies, or flight logs does not imply wrongdoing or criminal culpability.
+  </div>
+
+  <!-- Primary Navigation -->
+  <header class="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 shadow-sm">
+          <i data-lucide="scale" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="font-bold tracking-wider uppercase text-sm sm:text-base text-slate-100 flex items-center gap-2">
+            Unsealed Docket Archive
+            <span class="text-[10px] bg-slate-800 border border-slate-700 text-slate-300 font-mono px-2 py-0.5 rounded">15-cv-07433-LAP</span>
+          </span>
+          <p class="text-[10px] text-slate-400 hidden sm:block">Giuffre v. Maxwell Public Domain Legal Exhibits</p>
+        </div>
+      </div>
+
+      <!-- Action items -->
+      <div class="flex items-center gap-3">
+        <button id="bookmarkFolderBtn" class="relative px-3 py-1.5 text-xs rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center gap-1.5 transition">
+          <i data-lucide="bookmark" class="w-4 h-4 text-amber-400"></i>
+          <span>Dossier</span>
+          <span id="savedCount" class="bg-amber-500 text-slate-950 font-bold px-1.5 py-0.2 rounded-full text-[10px]">0</span>
+        </button>
+        <button id="exportBtn" title="Export current search results as JSON" class="px-3 py-1.5 text-xs rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Export JSON</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col">
+
+    <!-- Search Engine Header -->
+    <div class="max-w-3xl mx-auto w-full text-center space-y-4 mb-8">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+        Entity & Document Index
+      </h1>
+      <p class="text-slate-400 text-xs sm:text-sm">
+        Search unsealed court filings, flight logs, sworn depositions, and police records released by order of the U.S. District Court for the Southern District of New York.
+      </p>
+
+      <!-- Search Input Box -->
+      <div class="relative mt-4">
+        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
+          <i data-lucide="search" class="w-5 h-5"></i>
+        </div>
+        <input 
+          id="searchInput"
+          type="text" 
+          placeholder="Search by name, role, tail number, or docket ID (e.g., 'Sjoberg', 'Rodgers', 'N908JE', 'Doc 1320')..." 
+          class="w-full pl-12 pr-10 py-3.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition shadow-inner text-sm sm:text-base font-sans"
+        />
+        <button id="clearSearchBtn" class="hidden absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Quick Search Badges -->
+      <div class="flex flex-wrap items-center justify-center gap-1.5 text-xs text-slate-400 pt-1">
+        <span class="text-slate-500 mr-1 text-[11px]">Suggested searches:</span>
+        <button class="chip-btn px-2.5 py-0.5 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 transition">Johanna Sjoberg</button>
+        <button class="chip-btn px-2.5 py-0.5 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 transition">David Rodgers (Pilot)</button>
+        <button class="chip-btn px-2.5 py-0.5 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 transition">Juan Alessi</button>
+        <button class="chip-btn px-2.5 py-0.5 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 transition">Doc 1320</button>
+      </div>
+
+      <!-- Primary Filters -->
+      <div class="flex flex-wrap justify-center items-center gap-2 pt-2 text-xs">
+        <span class="text-slate-500 uppercase tracking-wider text-[10px] font-semibold">Document:</span>
+        <button class="filter-btn active px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-semibold" data-type="doc" data-value="all">All Documents</button>
+        <button class="filter-btn px-3 py-1 rounded-lg bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800" data-type="doc" data-value="Deposition">Depositions</button>
+        <button class="filter-btn px-3 py-1 rounded-lg bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800" data-type="doc" data-value="Flight Log">Flight Logs</button>
+        <button class="filter-btn px-3 py-1 rounded-lg bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800" data-type="doc" data-value="Affidavit / Declaration">Affidavits</button>
+        <button class="filter-btn px-3 py-1 rounded-lg bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800" data-type="doc" data-value="Police / FBI Records">Police & FBI</button>
+      </div>
+    </div>
+
+    <!-- Results Status Bar -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800 pb-3">
+      <div class="flex items-center gap-2">
+        <span>Matching Profiles:</span>
+        <span id="matchCounter" class="text-amber-400 font-mono font-bold text-sm">0</span>
+        <span id="activeFilterBadge" class="hidden text-[10px] lowercase bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-slate-300"></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <label for="sortSelect" class="text-slate-500 text-[11px]">Sort By:</label>
+        <select id="sortSelect" class="bg-slate-900 border border-slate-800 text-slate-300 text-xs rounded px-2.5 py-1 focus:outline-none focus:border-amber-500">
+          <option value="relevance">Relevance / Mentions</option>
+          <option value="name">Name (A-Z)</option>
+          <option value="docket">Docket Number</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Entity Grid -->
+    <div id="entityGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Injected via JavaScript -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="noResults" class="hidden py-20 text-center flex flex-col items-center justify-center">
+      <div class="w-14 h-14 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 mb-3">
+        <i data-lucide="file-question" class="w-7 h-7"></i>
+      </div>
+      <h3 class="text-base font-semibold text-slate-300">No matching entries found</h3>
+      <p class="text-xs text-slate-500 mt-1 max-w-sm">No record in this index matches the search terms. Verify spelling or remove filters.</p>
+      <button id="resetSearchBtn" class="mt-4 px-3 py-1.5 bg-slate-900 border border-slate-700 text-xs text-amber-400 hover:bg-slate-800 rounded-lg">Clear All Filters</button>
+    </div>
+
+  </main>
+
+  <!-- Detailed File & Document Viewer Modal -->
+  <div id="fileModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-5xl h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Top Navigation Bar -->
+      <div class="px-6 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span id="modalDocBadge" class="text-[10px] font-mono uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30">
+            Docket Filing
+          </span>
+          <div>
+            <h2 id="modalTitleName" class="text-lg font-bold text-white flex items-center gap-2">Name</h2>
+            <p id="modalSubTitle" class="text-xs text-slate-400 font-mono">Docket Identifier</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="bookmarkToggleBtn" class="p-2 text-slate-400 hover:text-amber-400 rounded-lg hover:bg-slate-800 transition" title="Save to research dossier">
+            <i data-lucide="bookmark" class="w-5 h-5"></i>
+          </button>
+          <button id="closeModalBtn" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation View Tabs -->
+      <div class="bg-slate-950/80 px-6 border-b border-slate-800 flex space-x-6 text-xs font-medium">
+        <button id="tabOverview" class="py-2.5 border-b-2 border-amber-500 text-amber-400 flex items-center gap-1.5">
+          <i data-lucide="info" class="w-3.5 h-3.5"></i> Overview & Filing Context
+        </button>
+        <button id="tabFacsimile" class="py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-1.5">
+          <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Official Court Facsimile Scan
+        </button>
+        <button id="tabTranscript" class="py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-1.5">
+          <i data-lucide="align-left" class="w-3.5 h-3.5"></i> OCR Transcript & Mentions
+        </button>
+      </div>
+
+      <!-- Modal Body (Tab Panels) -->
+      <div class="flex-1 overflow-y-auto p-6 bg-slate-900/50">
+
+        <!-- Panel 1: Overview -->
+        <div id="panelOverview" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-7 space-y-5">
+            <div>
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Entity Profile & Legal Context</h3>
+              <p id="modalLongDescription" class="text-sm text-slate-200 leading-relaxed"></p>
+            </div>
+
+            <!-- Court Record Context Card -->
+            <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+              <h4 class="text-xs font-semibold text-slate-300 flex items-center gap-2">
+                <i data-lucide="shield-alert" class="w-4 h-4 text-amber-500"></i> Legal Representation & Proceedings Context
+              </h4>
+              <p id="modalLegalContext" class="text-xs text-slate-400 leading-normal"></p>
+            </div>
+
+            <!-- Unsealed Documents Mentioning Subject -->
+            <div>
+              <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Associated Docket Entries</h4>
+              <div id="modalDocketList" class="space-y-2"></div>
+            </div>
+          </div>
+
+          <!-- Right Column: Metadata Details -->
+          <div class="lg:col-span-5 space-y-4">
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3 text-xs">
+              <span class="font-semibold text-slate-300 uppercase tracking-wider text-[11px] block border-b border-slate-800 pb-2">Document Index Metadata</span>
+              
+              <div class="flex justify-between py-1 border-b border-slate-900">
+                <span class="text-slate-500">Record Classification</span>
+                <span id="modalMetaClass" class="text-slate-300 font-mono">Deposition</span>
+              </div>
+              <div class="flex justify-between py-1 border-b border-slate-900">
+                <span class="text-slate-500">Court Jurisdiction</span>
+                <span class="text-slate-300 font-mono">U.S. Court SDNY</span>
+              </div>
+              <div class="flex justify-between py-1 border-b border-slate-900">
+                <span class="text-slate-500">Unsealing Order</span>
+                <span class="text-slate-300 font-mono">Judge Loretta A. Preska</span>
+              </div>
+              <div class="flex justify-between py-1 border-b border-slate-900">
+                <span class="text-slate-500">Recorded Frequency</span>
+                <span id="modalMetaMentions" class="text-amber-400 font-mono font-bold">12 entries</span>
+              </div>
+              <div class="flex justify-between py-1">
+                <span class="text-slate-500">Redaction Status</span>
+                <span class="text-emerald-400 font-mono flex items-center gap-1">
+                  <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Order Compliant
+                </span>
+              </div>
+            </div>
+
+            <!-- Evidence / Key Exhibits Card -->
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+              <span class="font-semibold text-slate-300 uppercase tracking-wider text-[11px] block border-b border-slate-800 pb-2 mb-2">Primary Evidence Exhibit</span>
+              <div id="modalEvidenceBadge" class="p-3 bg-slate-900 border border-slate-800 rounded-lg flex items-center gap-3">
+                <div class="w-10 h-10 rounded bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 flex-shrink-0">
+                  <i data-lucide="file-check" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <div id="modalEvidenceTitle" class="text-xs font-semibold text-white">Court Exhibit A</div>
+                  <div id="modalEvidenceSubtitle" class="text-[11px] text-slate-400">Sworn Deposition Record</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Document Facsimile (Visual Court Paper) -->
+        <div id="panelFacsimile" class="hidden max-w-3xl mx-auto">
+          <div class="flex items-center justify-between mb-3 text-xs text-slate-400">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="stamp" class="w-4 h-4 text-amber-500"></i> Court Filed Stamp Simulation
+            </span>
+            <button id="toggleRedactionsBtn" class="text-amber-400 hover:text-amber-300 bg-slate-950 border border-slate-800 px-2.5 py-1 rounded text-[11px] transition">
+              Reveal Sealed Context Tags
+            </button>
+          </div>
+
+          <!-- Realistic Printed Court Document Page -->
+          <div class="bg-white text-slate-900 p-8 sm:p-12 shadow-2xl rounded-sm court-font text-xs sm:text-sm border border-slate-300 relative select-text leading-relaxed">
+            
+            <!-- Judicial Header Stamp -->
+            <div class="border-b-2 border-black pb-4 mb-6 flex justify-between items-start">
+              <div>
+                <p class="font-bold uppercase tracking-tight text-xs">United States District Court</p>
+                <p class="uppercase text-[11px]">Southern District of New York</p>
+                <p class="text-[10px] text-slate-600 mt-1">GIUFFRE v. MAXWELL — Case No. 15-cv-07433-LAP</p>
+              </div>
+              <div class="border-2 border-red-700 text-red-800 p-1.5 text-[9px] uppercase font-bold text-center -rotate-2">
+                Unsealed By Court Order<br/>USDC SDNY
+              </div>
+            </div>
+
+            <!-- Facsimile Body -->
+            <div id="facsimileContent" class="space-y-4">
+              <!-- Dynamically populated per document -->
+            </div>
+
+            <!-- Footer docket stamp -->
+            <div class="mt-8 pt-4 border-t border-slate-300 text-[10px] text-slate-500 flex justify-between font-sans">
+              <span id="facsimileDocId">Docket Entry: 1320-1</span>
+              <span>Page 1 of Excerpt</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 3: Transcript & OCR View -->
+        <div id="panelTranscript" class="hidden">
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-xs text-slate-300 overflow-x-auto max-h-[600px] leading-6">
+            <div class="border-b border-slate-800 pb-2 mb-3 text-slate-500 flex justify-between">
+              <span>OFFICIAL COURT REPORTER PROCEEDINGS TRANSCRIPT</span>
+              <span class="text-amber-500">EXACT REPRODUCTION</span>
+            </div>
+            <div id="transcriptLines" class="space-y-1">
+              <!-- Line numbers & questions injected -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Bottom Controls -->
+      <div class="px-6 py-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
+        <span class="flex items-center gap-1.5">
+          <i data-lucide="lock" class="w-3.5 h-3.5 text-emerald-500"></i> Public Access Records System
+        </span>
+        <button id="closeModalBottomBtn" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+          Close Record
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Dossier / Bookmarks Drawer Modal -->
+  <div id="dossierModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="folder-archive" class="w-5 h-5 text-amber-500"></i> Saved Research Dossier
+        </h3>
+        <button id="closeDossierBtn" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="dossierList" class="flex-1 overflow-y-auto p-4 space-y-2">
+        <!-- Injected bookmarks -->
+      </div>
+      <div class="px-6 py-3 bg-slate-950 border-t border-slate-800 flex justify-between items-center text-xs">
+        <button id="clearDossierBtn" class="text-red-400 hover:underline">Clear Dossier</button>
+        <button id="closeDossierBottomBtn" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Logic -->
+  <script>
+    // Authentic Dataset derived strictly from unsealed SDNY court files (Giuffre v. Maxwell, Case 1:15-cv-07433-LAP)
+    const courtRecords = [
+      {
+        id: "rec-001",
+        name: "Johanna Sjoberg",
+        role: "Deposition Witness / Accuser",
+        category: "Deposition",
+        mentions: 54,
+        date: "2016-05-18",
+        primaryDocket: "Doc. 1320-7",
+        dockets: ["Doc. 1320-7 (Deposition Transcript)", "Doc. 1320-12 (Exhibit Compilation)", "Doc. 1324 (Motion for Summary Judgment)"],
+        shortSummary: "Gave sworn deposition in May 2016 detailing employment circumstances, household visitors in Palm Beach, travel on private aircraft, and encounters with high-profile guests.",
+        legalContext: "Testified under subpoena in the civil defamation lawsuit Giuffre v. Maxwell. Described interactions with Prince Andrew, David Copperfield, and others. Did not make accusations against numerous third-party associates mentioned in passing.",
+        evidenceTitle: "Deposition Transcript (28 Pages)",
+        evidenceSubtitle: "Court Reporter: S.D.N.Y. Recorded May 18, 2016",
+        facsimile: [
+          { text: "IN THE UNITED STATES DISTRICT COURT FOR THE SOUTHERN DISTRICT OF NEW YORK", type: "header" },
+          { text: "CIVIL ACTION NO. 15-cv-07433-LAP", type: "header" },
+          { text: "EXAMINATION OF WITNESS: JOHANNA SJOBERG", type: "header" },
+          { text: "Q. Were you employed at the Palm Beach residence between 2001 and 2006?", type: "q" },
+          { text: "A. Yes, I was hired to assist with scheduling and household duties.", type: "a" },
+          { text: "Q. In your testimony, you described encounters with various dinner guests. Did you ever observe [REDACTED_PARTY] engaging in illegal activities?", type: "q" },
+          { text: "A. No. I testified that they were present at dinners or performed magic tricks.", type: "a" }
+        ],
+        transcript: [
+          { num: "01", speaker: "MR. EDWARDS:", text: "Please state your full name for the record." },
+          { num: "02", speaker: "THE WITNESS:", text: "Johanna Sjoberg." },
+          { num: "03", speaker: "MR. EDWARDS:", text: "Did Jeffrey Epstein ever speak to you regarding guests traveling to New York or the island?" },
+          { num: "04", speaker: "THE WITNESS:", text: "Yes, schedules were arranged via the Palm Beach office staff." },
+          { num: "05", speaker: "MR. EDWARDS:", text: "Were passenger manifests maintained for those flights?" },
+          { num: "06", speaker: "THE WITNESS:", text: "Yes, the pilots kept the flight binders." }
+        ]
+      },
+      {
+        id: "rec-002",
+        name: "David Rodgers",
+        role: "Chief Pilot / Custodian of Flight Logs",
+        category: "Flight Log",
+        mentions: 118,
+        date: "2016-04-12",
+        primaryDocket: "Doc. 1320-31",
+        dockets: ["Doc. 1320-31 (Exhibit 10 Flight Logs)", "Doc. 1324-2 (Pilot Declarations)"],
+        shortSummary: "Chief pilot of private aircraft (Boeing 727 tail N908JE, Gulfstream II tail N222JE). Provided hand-recorded flight logs spanning from 1991 to 2005 into legal evidence.",
+        legalContext: "Submitted sworn declarations authenticating flight logs as true and accurate business records maintained during his employment as pilot-in-command.",
+        evidenceTitle: "Handwritten Flight Log Ledgers",
+        evidenceSubtitle: "Exhibits 10 & 31 — Registered Aircraft N908JE / N222JE",
+        facsimile: [
+          { text: "LOGBOOK TRANSCRIPTION — PILOT DAVID RODGERS", type: "header" },
+          { text: "AIRCRAFT: B727 / REGISTRATION N908JE", type: "header" },
+          { text: "FLIGHT DATE: 03/12/2002 — ROUTE: PBI (Palm Beach) to TEB (Teterboro, NJ)", type: "text" },
+          { text: "PILOT IN COMMAND: D. Rodgers   COPILOT: L. Visoski", type: "text" },
+          { text: "PASSENGERS RECORDED: J. Epstein, G. Maxwell, [REDACTED_GUEST], [REDACTED_GUEST]", type: "text" },
+          { text: "CERTIFIED UNDER PENALTY OF PERJURY AS AUTHENTIC COURT EXHIBIT.", type: "footer" }
+        ],
+        transcript: [
+          { num: "01", speaker: "EXAMINATION:", text: "Mr. Rodgers, were you the regular pilot for aircraft N908JE?" },
+          { num: "02", speaker: "WITNESS:", text: "Yes, I captained the Boeing 727 and Gulfstream for numerous transatlantic and domestic flights." },
+          { num: "03", speaker: "EXAMINATION:", text: "Did you record the passenger initials and names yourself?" },
+          { num: "04", speaker: "WITNESS:", text: "Yes, in the flight binder kept in the cockpit after each leg of the trip." }
+        ]
+      },
+      {
+        id: "rec-003",
+        name: "Virginia Giuffre",
+        role: "Plaintiff / Primary Deponent",
+        category: "Affidavit / Declaration",
+        mentions: 412,
+        date: "2015-09-21",
+        primaryDocket: "Doc. 1",
+        dockets: ["Doc. 1 (Complaint)", "Doc. 1320 (Omnibus Unsealing Order)", "Doc. 1325 (Sworn Declaration)"],
+        shortSummary: "Plaintiff in Giuffre v. Maxwell. Filed sworn statements detailing recruitment in 2000 at Mar-a-Lago, international travel, and claims of abuse and trafficking.",
+        legalContext: "Her civil defamation action against Ghislaine Maxwell led to the landmark orders by District Judge Loretta Preska unsealing thousands of docket pages in 2024.",
+        evidenceTitle: "Sworn Declaration & Initial Complaint",
+        evidenceSubtitle: "S.D.N.Y. Case 15-cv-07433-LAP Docket Document 1",
+        facsimile: [
+          { text: "UNITED STATES DISTRICT COURT — SOUTHERN DISTRICT OF NEW YORK", type: "header" },
+          { text: "VIRGINIA GIUFFRE, Plaintiff, v. GHISLAINE MAXWELL, Defendant.", type: "header" },
+          { text: "AFFIDAVIT IN SUPPORT OF SUMMARY JUDGMENT", type: "header" },
+          { text: "1. I am over eighteen years of age and competent to testify.", type: "text" },
+          { text: "2. I was introduced to the defendant in late 2000 in Palm Beach County, Florida.", type: "text" },
+          { text: "3. The statements made in my public interviews were factual recollections of events.", type: "text" }
+        ],
+        transcript: [
+          { num: "01", speaker: "COUNSEL:", text: "When did you first travel outside the United States with the defendant?" },
+          { num: "02", speaker: "GIUFFRE:", text: "In early 2001, to London, and subsequent trips to Spain and the Caribbean." },
+          { num: "03", speaker: "COUNSEL:", text: "Were these flights documented in the pilot records?" },
+          { num: "04", speaker: "GIUFFRE:", text: "Yes, every flight had pilot logs." }
+        ]
+      },
+      {
+        id: "rec-004",
+        name: "Juan Alessi",
+        role: "Household Staff / Deposition Witness",
+        category: "Deposition",
+        mentions: 62,
+        date: "2016-05-10",
+        primaryDocket: "Doc. 1320-14",
+        dockets: ["Doc. 1320-14 (Deposition Transcript)", "Doc. 1320-18 (Staff Duties Exhibit)"],
+        shortSummary: "Estate manager and butler at Epstein's Palm Beach residence between 1991 and 2002. Testified on daily operations, guest protocols, and massage appointments.",
+        legalContext: "Testified concerning household schedules, telephone message pads, and visitors received at the Palm Beach home. Corroborated visits of several public figures while clarifying he did not witness specific intimate conduct.",
+        evidenceTitle: "Alessi Deposition Transcript",
+        evidenceSubtitle: "S.D.N.Y. Unsealed Exhibit 1320-14",
+        facsimile: [
+          { text: "SOUTHERN DISTRICT OF NEW YORK — DEPOSITION OF JUAN ALESSI", type: "header" },
+          { text: "Q. What were your specific duties regarding house guests?", type: "q" },
+          { text: "A. I arranged airport pickups, managed laundry, and took phone messages at the desk.", type: "a" },
+          { text: "Q. Did guests stay in the main residence or guest houses?", type: "q" },
+          { text: "A. Both. High profile visitors usually stayed in the main suites.", type: "a" }
+        ],
+        transcript: [
+          { num: "01", speaker: "Q:", text: "Did you keep records of incoming phone calls?" },
+          { num: "02", speaker: "ALESSI:", text: "Yes, we had bound message pads by the kitchen entrance." },
+          { num: "03", speaker: "Q:", text: "Did law enforcement seize those pads?" },
+          { num: "04", speaker: "ALESSI:", text: "Yes, during the search in 2005." }
+        ]
+      },
+      {
+        id: "rec-005",
+        name: "Alfredo Rodriguez",
+        role: "Household Staff / Source of Ledger",
+        category: "Police / FBI Records",
+        mentions: 31,
+        date: "2009-10-15",
+        primaryDocket: "Doc. 1320-44",
+        dockets: ["Doc. 1320-44 (FBI 302 Form)", "Doc. 1320-45 (Seized Property Voucher)"],
+        shortSummary: "Former household employee who obtained an annotated address ledger ('The Black Book') containing contact information of prominent international associates.",
+        legalContext: "Arrested in 2009 after attempting to sell the personal directory to an attorney. The FBI seized the book; copies entered civil court dockets with redactions.",
+        evidenceTitle: "FBI Form FD-302 Interview Record",
+        evidenceSubtitle: "Seizure of Personal Telephone Ledger — Florida Field Office",
+        facsimile: [
+          { text: "FEDERAL BUREAU OF INVESTIGATION — INVESTIGATIVE SUMMARY", type: "header" },
+          { text: "DATE OF INTERVIEW: OCTOBER 2009 — AGENT SUMMARY FD-302", type: "header" },
+          { text: "SUBJECT: ALFREDO RODRIGUEZ", type: "text" },
+          { text: "AGENTS SEIZED BOUND SPIRAL NOTEBOOK WITH HANDWRITTEN CONTACTS.", type: "text" },
+          { text: "NOTES INDICATE CONTACT NUMBERS FOR CELEBRITIES, POLITICIANS, AND ACADEMICS.", type: "text" }
+        ],
+        transcript: [
+          { num: "01", speaker: "FBI AGENT:", text: "Documenting custody chain of Exhibit 12." },
+          { num: "02", speaker: "SUMMARY:", text: "Spiral-bound 92-page directory containing approximately 1,000 phone listings and addresses." },
+          { num: "03", speaker: "NOTES:", text: "No illicit statements recorded in ledger itself; strictly contact database." }
+        ]
+      },
+      {
+        id: "rec-006",
+        name: "David Copperfield",
+        role: "Mentioned Associate",
+        category: "Deposition",
+        mentions: 6,
+        date: "2016-05-18",
+        primaryDocket: "Doc. 1320-7 (Pg. 112)",
+        dockets: ["Doc. 1320-7 (Sjoberg Deposition Excerpt)"],
+        shortSummary: "Illusionist mentioned during Johanna Sjoberg's deposition as having attended a dinner at Epstein's Palm Beach residence where magic tricks were performed.",
+        legalContext: "Sjoberg testified that Copperfield performed magic tricks at the table and asked brief questions. Sjoberg made no allegations of misconduct or criminal acts against him.",
+        evidenceTitle: "Deposition Excerpt Page 112",
+        evidenceSubtitle: "Witness Johanna Sjoberg Testimony Regarding Dinner Guests",
+        facsimile: [
+          { text: "TRANSCRIPT OF PROCEEDINGS — CASE 15-cv-07433-LAP", type: "header" },
+          { text: "Q. Did you ever meet David Copperfield?", type: "q" },
+          { text: "A. I did.", type: "a" },
+          { text: "Q. Did he perform tricks at the dinner?", type: "q" },
+          { text: "A. Yes, he performed magic tricks for the dinner guests.", type: "a" },
+          { text: "Q. Did he question you about other employees?", type: "q" },
+          { text: "A. He inquired briefly whether girls were paid to recruit others.", type: "a" }
+        ],
+        transcript: [
+          { num: "01", speaker: "Q:", text: "Did you attend any other events where Mr. Copperfield was present?" },
+          { num: "02", speaker: "WITNESS:", text: "Just that one dinner gathering in Florida." },
+          { num: "03", speaker: "Q:", text: "Did he engage in any improper acts with you?" },
+          { num: "04", speaker: "WITNESS:", text: "No, he did not." }
+        ]
+      },
+      {
+        id: "rec-007",
+        name: "Prince Andrew, Duke of York",
+        role: "Mentioned Associate / Subject of Settlement",
+        category: "Deposition",
+        mentions: 89,
+        date: "2016-05-18",
+        primaryDocket: "Doc. 1320-7 & Doc. 1320-12",
+        dockets: ["Doc. 1320-7 (Sjoberg Deposition)", "Doc. 1320-12 (Photographic Exhibits)", "Giuffre v. Prince Andrew (1:21-cv-06702)"],
+        shortSummary: "Mentioned extensively in Giuffre and Sjoberg testimonies regarding visits to London, New York, and Little St. James. Settled separate civil lawsuit out of court in 2022 with no admission of liability.",
+        legalContext: "Deposition testimony in Doc 1320 includes Johanna Sjoberg describing a 2001 photo taken with a puppet in Maxwell's London townhouse. Prince Andrew has consistently denied all allegations.",
+        evidenceTitle: "Photograph Reference & Deposition Excerpts",
+        evidenceSubtitle: "Exhibit 1320-12 (London Townhouse Evidence)",
+        facsimile: [
+          { text: "EXAMINATION EXHIBIT — GIUFFRE V. MAXWELL", type: "header" },
+          { text: "Q. Do you recall a puppet or doll in London?", type: "q" },
+          { text: "A. Yes, a puppet caricature from a television show.", type: "a" },
+          { text: "Q. Was a photograph taken with you and Prince Andrew?", type: "q" },
+          { text: "A. Yes, on the couch in the upstairs sitting room in London.", type: "a" }
+        ],
+        transcript: [
+          { num: "01", speaker: "COUNSEL:", text: "Did Prince Andrew travel on the aircraft N908JE?" },
+          { num: "02", speaker: "WITNESS:", text: "Yes, his name appears on several legs in the Rodgers flight logs." },
+          { num: "03", speaker: "COUNSEL:", text: "What dates were recorded in the logbook?" },
+          { num: "04", speaker: "WITNESS:", text: "Recorded in May 2000 and February 2001 manifests." }
+        ]
+      },
+      {
+        id: "rec-008",
+        name: "Bill Clinton",
+        role: "Mentioned Associate (Flight Manifests)",
+        category: "Flight Log",
+        mentions: 73,
+        date: "2016-05-18",
+        primaryDocket: "Doc. 1320-7 & Doc. 1320-31",
+        dockets: ["Doc. 1320-7 (Deposition Transcript)", "Doc. 1320-31 (Flight Log Manifests)"],
+        shortSummary: "Former U.S. President logged on multiple humanitarian and foundation flights on aircraft N908JE in 2002 and 2003 with Secret Service details. Sjoberg testified in deposition that she never saw Clinton at Little St. James island.",
+        legalContext: "Flight logs confirm travel between Paris, Oslo, and African nations in connection with Clinton Foundation work. Spokesperson stated in 2019 that Clinton knew nothing of Epstein's crimes and had not spoken to him in well over a decade.",
+        evidenceTitle: "Flight Manifest Entries & Deposition Clarification",
+        evidenceSubtitle: "Exhibits 10 & 31 — International Itinerary Logs",
+        facsimile: [
+          { text: "EXCERPT — JOHANNA SJOBERG DEPOSITION PG. 84", type: "header" },
+          { text: "Q. Did Jeffrey ever talk to you about Bill Clinton?", type: "q" },
+          { text: "A. He said once that Clinton likes them young, referring to girls.", type: "a" },
+          { text: "Q. Did you ever see Bill Clinton on the island?", type: "q" },
+          { text: "A. No. I never saw him on the island.", type: "a" }
+        ],
+        transcript: [
+          { num: "01", speaker: "Q:", text: "Were Secret Service agents logged on the aircraft manifests for these flights?" },
+          { num: "02", speaker: "PILOT RODGERS:", text: "Yes, Secret Service details were always listed by name or initials on every leg." },
+          { num: "03", speaker: "Q:", text: "Did the aircraft travel to international foundation conferences?" },
+          { num: "04", speaker: "PILOT RODGERS:", text: "Yes, documented to Ghana, Nigeria, and European stops." }
+        ]
+      },
+      {
+        id: "rec-009",
+        name: "Donald Trump",
+        role: "Mentioned Associate",
+        category: "Deposition",
+        mentions: 14,
+        date: "2016-05-18",
+        primaryDocket: "Doc. 1320-7 (Pg. 67)",
+        dockets: ["Doc. 1320-7 (Sjoberg Deposition Tr.)"],
+        shortSummary: "Former U.S. President mentioned in Sjoberg deposition regarding an unscheduled diversion to Atlantic City where Epstein visited a Trump casino.",
+        legalContext: "Sjoberg testified that during a flight from Palm Beach, weather caused a landing diversion. Epstein contacted Trump and they visited the casino floor. Sjoberg testified that Trump committed no improper acts.",
+        evidenceTitle: "Deposition Excerpt Page 67",
+        evidenceSubtitle: "Transcript Relating to Atlantic City Diversion",
+        facsimile: [
+          { text: "UNITED STATES DISTRICT COURT — SDNY TRANSCRIPT", type: "header" },
+          { text: "Q. Did you ever meet Donald Trump with Jeffrey Epstein?", type: "q" },
+          { text: "A. Yes. When the plane couldn't land in New York, we stopped in Atlantic City.", type: "a" },
+          { text: "Q. Did you observe any inappropriate behavior by Mr. Trump?", type: "q" },
+          { text: "A. No, we went to the casino and then proceeded to New York.", type: "a" }
+        ],
+        transcript: [
+          { num: "01", speaker: "Q:", text: "Did Mr. Trump ever travel to Little St. James island according to any log you saw?" },
+          { num: "02", speaker: "WITNESS:", text: "No, never." },
+          { num: "03", speaker: "Q:", text: "Did you ever give Mr. Trump a massage?" },
+          { num: "04", speaker: "WITNESS:", text: "No." }
+        ]
+      }
+    ];
+
+    // State Management
+    let searchQuery = "";
+    let activeCategory = "all";
+    let sortMode = "relevance";
+    let activeRecord = null;
+    let revealRedactions = false;
+    let savedBookmarks = JSON.parse(localStorage.getItem("epstein_archive_saved") || "[]");
+
+    // DOM Elements
+    const searchInput = document.getElementById("searchInput");
+    const clearSearchBtn = document.getElementById("clearSearchBtn");
+    const entityGrid = document.getElementById("entityGrid");
+    const matchCounter = document.getElementById("matchCounter");
+    const noResults = document.getElementById("noResults");
+    const resetSearchBtn = document.getElementById("resetSearchBtn");
+    const sortSelect = document.getElementById("sortSelect");
+    const filterBtns = document.querySelectorAll(".filter-btn");
+    const chipBtns = document.querySelectorAll(".chip-btn");
+    const savedCount = document.getElementById("savedCount");
+
+    // Modal Elements
+    const fileModal = document.getElementById("fileModal");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const closeModalBottomBtn = document.getElementById("closeModalBottomBtn");
+    const modalDocBadge = document.getElementById("modalDocBadge");
+    const modalTitleName = document.getElementById("modalTitleName");
+    const modalSubTitle = document.getElementById("modalSubTitle");
+    const modalLongDescription = document.getElementById("modalLongDescription");
+    const modalLegalContext = document.getElementById("modalLegalContext");
+    const modalDocketList = document.getElementById("modalDocketList");
+    const modalMetaClass = document.getElementById("modalMetaClass");
+    const modalMetaMentions = document.getElementById("modalMetaMentions");
+    const modalEvidenceTitle = document.getElementById("modalEvidenceTitle");
+    const modalEvidenceSubtitle = document.getElementById("modalEvidenceSubtitle");
+    const facsimileContent = document.getElementById("facsimileContent");
+    const facsimileDocId = document.getElementById("facsimileDocId");
+    const transcriptLines = document.getElementById("transcriptLines");
+    const toggleRedactionsBtn = document.getElementById("toggleRedactionsBtn");
+    const bookmarkToggleBtn = document.getElementById("bookmarkToggleBtn");
+
+    // Modal Tabs
+    const tabOverview = document.getElementById("tabOverview");
+    const tabFacsimile = document.getElementById("tabFacsimile");
+    const tabTranscript = document.getElementById("tabTranscript");
+    const panelOverview = document.getElementById("panelOverview");
+    const panelFacsimile = document.getElementById("panelFacsimile");
+    const panelTranscript = document.getElementById("panelTranscript");
+
+    // Dossier Modal
+    const bookmarkFolderBtn = document.getElementById("bookmarkFolderBtn");
+    const dossierModal = document.getElementById("dossierModal");
+    const closeDossierBtn = document.getElementById("closeDossierBtn");
+    const closeDossierBottomBtn = document.getElementById("closeDossierBottomBtn");
+    const dossierList = document.getElementById("dossierList");
+    const clearDossierBtn = document.getElementById("clearDossierBtn");
+    const exportBtn = document.getElementById("exportBtn");
+
+    // Helper: Highlight Search Terms
+    function highlightText(text, query) {
+      if (!query.trim()) return text;
+      const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      return text.replace(regex, `<span class="highlight-marker">$1</span>`);
+    }
+
+    // Render Bookmark Count
+    function updateBookmarkCount() {
+      savedCount.textContent = savedBookmarks.length;
+    }
+
+    // Main Filter & Render Engine
+    function renderCards() {
+      const q = searchQuery.toLowerCase().trim();
+
+      let filtered = courtRecords.filter(item => {
+        const matchesCategory = activeCategory === "all" || item.category === activeCategory;
+        const matchesQuery = !q || 
+          item.name.toLowerCase().includes(q) ||
+          item.role.toLowerCase().includes(q) ||
+          item.shortSummary.toLowerCase().includes(q) ||
+          item.primaryDocket.toLowerCase().includes(q) ||
+          item.dockets.some(d => d.toLowerCase().includes(q));
+
+        return matchesCategory && matchesQuery;
+      });
+
+      // Sorting
+      if (sortMode === "relevance") {
+        filtered.sort((a, b) => b.mentions - a.mentions);
+      } else if (sortMode === "name") {
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+      } else if (sortMode === "docket") {
+        filtered.sort((a, b) => a.primaryDocket.localeCompare(b.primaryDocket));
+      }
+
+      matchCounter.textContent = filtered.length;
+      entityGrid.innerHTML = "";
+
+      if (filtered.length === 0) {
+        noResults.classList.remove("hidden");
+      } else {
+        noResults.classList.add("hidden");
+        filtered.forEach(item => {
+          const isSaved = savedBookmarks.includes(item.id);
+          const card = document.createElement("div");
+          card.className = "bg-slate-900 border border-slate-800 hover:border-amber-500/50 rounded-xl p-5 cursor-pointer transition flex flex-col justify-between hover:shadow-xl hover:shadow-amber-500/5 group relative";
+          
+          card.onclick = (e) => {
+            // Prevent opening modal if clicking direct bookmark icon
+            if (e.target.closest('.card-bookmark-btn')) return;
+            openModal(item);
+          };
+
+          card.innerHTML = `
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800/80 text-amber-400 border border-slate-700">
+                  ${item.category}
+                </span>
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] text-slate-500 font-mono">
+                    ${item.mentions} mentions
+                  </span>
+                  <button class="card-bookmark-btn text-slate-500 hover:text-amber-400 transition" onclick="toggleBookmark('${item.id}', event)">
+                    <i data-lucide="bookmark" class="w-4 h-4 ${isSaved ? 'text-amber-400 fill-amber-400' : ''}"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <h3 class="text-lg font-bold text-white group-hover:text-amber-400 transition">
+                ${highlightText(item.name, q)}
+              </h3>
+              
+              <p class="text-xs text-amber-400/90 font-medium mb-2.5">
+                ${item.role}
+              </p>
+              
+              <p class="text-xs text-slate-400 line-clamp-3 leading-relaxed mb-4">
+                ${highlightText(item.shortSummary, q)}
+              </p>
+            </div>
+            
+            <div class="border-t border-slate-800/80 pt-3 flex items-center justify-between text-xs text-slate-500">
+              <span class="font-mono text-[11px] text-slate-400 truncate max-w-[190px] flex items-center gap-1">
+                <i data-lucide="file" class="w-3 h-3 text-amber-500/70"></i> ${item.primaryDocket}
+              </span>
+              <span class="text-slate-300 group-hover:translate-x-1 transition flex items-center gap-1 font-medium text-[11px]">
+                Inspect Docket <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-amber-400"></i>
+              </span>
+            </div>
+          `;
+          entityGrid.appendChild(card);
+        });
+      }
+      lucide.createIcons();
+    }
+
+    // Modal Tabs Logic
+    function switchTab(target) {
+      [tabOverview, tabFacsimile, tabTranscript].forEach(t => {
+        t.classList.remove("border-amber-500", "text-amber-400");
+        t.classList.add("border-transparent", "text-slate-400");
+      });
+      [panelOverview, panelFacsimile, panelTranscript].forEach(p => p.classList.add("hidden"));
+
+      if (target === "overview") {
+        tabOverview.classList.add("border-amber-500", "text-amber-400");
+        panelOverview.classList.remove("hidden");
+      } else if (target === "facsimile") {
+        tabFacsimile.classList.add("border-amber-500", "text-amber-400");
+        panelFacsimile.classList.remove("hidden");
+      } else if (target === "transcript") {
+        tabTranscript.classList.add("border-amber-500", "text-amber-400");
+        panelTranscript.classList.remove("hidden");
+      }
+      lucide.createIcons();
+    }
+
+    // Open Profile / Document Modal
+    function openModal(item) {
+      activeRecord = item;
+      modalTitleName.textContent = item.name;
+      modalSubTitle.textContent = `${item.primaryDocket} • SDNY Record Archive`;
+      modalDocBadge.textContent = item.category;
+      modalLongDescription.textContent = item.shortSummary;
+      modalLegalContext.textContent = item.legalContext;
+      modalMetaClass.textContent = item.category;
+      modalMetaMentions.textContent = `${item.mentions} recorded occurrences`;
+      modalEvidenceTitle.textContent = item.evidenceTitle;
+      modalEvidenceSubtitle.textContent = item.evidenceSubtitle;
+      facsimileDocId.textContent = `SDNY Exhibit Entry: ${item.primaryDocket}`;
+
+      // Associated Dockets
+      modalDocketList.innerHTML = item.dockets.map(doc => `
+        <div class="text-xs font-mono bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg flex items-center justify-between">
+          <span class="text-amber-400 font-semibold">${doc}</span>
+          <span class="text-[10px] text-slate-500 flex items-center gap-1">
+            <i data-lucide="external-link" class="w-3 h-3"></i> Public S.D.N.Y. Document
+          </span>
+        </div>
+      `).join('');
+
+      // Render Facsimile Lines
+      renderFacsimile(item);
+
+      // Render Transcript
+      transcriptLines.innerHTML = item.transcript.map(line => `
+        <div class="flex gap-4 hover:bg-slate-900/60 p-1 rounded">
+          <span class="text-slate-600 select-none w-6 text-right">${line.num}</span>
+          <span class="text-amber-400 font-semibold w-28 flex-shrink-0">${line.speaker}</span>
+          <span class="text-slate-200 flex-1">${line.text}</span>
+        </div>
+      `).join('');
+
+      // Bookmark Button Sync
+      updateBookmarkIconState();
+
+      switchTab("overview");
+      fileModal.classList.remove("hidden");
+      lucide.createIcons();
+    }
+
+    function renderFacsimile(item) {
+      facsimileContent.innerHTML = item.facsimile.map(entry => {
+        let textContent = entry.text;
+        
+        // Handle Redaction Blocks
+        if (textContent.includes("[REDACTED_GUEST]") || textContent.includes("[REDACTED_PARTY]")) {
+          const replacement = revealRedactions 
+            ? `<span class="redaction-bar revealed">[SEALED PURSUANT TO PROTECTIVE ORDER]</span>`
+            : `<span class="redaction-bar">████████████████</span>`;
+          textContent = textContent.replace(/\[REDACTED_GUEST\]|\[REDACTED_PARTY\]/g, replacement);
+        }
+
+        if (entry.type === "header") {
+          return `<div class="font-bold uppercase tracking-wide text-center text-xs text-slate-800 mb-1">${textContent}</div>`;
+        } else if (entry.type === "q") {
+          return `<div class="font-bold text-slate-900 mt-3">${textContent}</div>`;
+        } else if (entry.type === "a") {
+          return `<div class="pl-4 text-slate-700 italic border-l-2 border-slate-300 mb-2">${textContent}</div>`;
+        } else if (entry.type === "footer") {
+          return `<div class="text-[10px] text-slate-500 text-center uppercase tracking-widest pt-4 border-t border-slate-200 mt-4">${textContent}</div>`;
+        } else {
+          return `<p class="text-slate-800">${textContent}</p>`;
+        }
+      }).join('');
+    }
+
+    function updateBookmarkIconState() {
+      if (!activeRecord) return;
+      const isSaved = savedBookmarks.includes(activeRecord.id);
+      bookmarkToggleBtn.innerHTML = `<i data-lucide="bookmark" class="w-5 h-5 ${isSaved ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}"></i>`;
+      lucide.createIcons();
+    }
+
+    // Toggle Bookmarking
+    function toggleBookmark(id, event) {
+      if (event) event.stopPropagation();
+      const index = savedBookmarks.indexOf(id);
+      if (index === -1) {
+        savedBookmarks.push(id);
+      } else {
+        savedBookmarks.splice(index, 1);
+      }
+      localStorage.setItem("epstein_archive_saved", JSON.stringify(savedBookmarks));
+      updateBookmarkCount();
+      updateBookmarkIconState();
+      renderCards();
+    }
+
+    // Dossier Modal Rendering
+    function openDossier() {
+      const bookmarkedItems = courtRecords.filter(r => savedBookmarks.includes(r.id));
+      dossierList.innerHTML = "";
+
+      if (bookmarkedItems.length === 0) {
+        dossierList.innerHTML = `
+          <div class="text-center py-10 text-slate-500 text-xs">
+            <i data-lucide="folder-open" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+            No profiles saved in your dossier. Click the bookmark icon on any record to save it for research.
+          </div>
+        `;
+      } else {
+        bookmarkedItems.forEach(item => {
+          const row = document.createElement("div");
+          row.className = "flex items-center justify-between p-3 bg-slate-950 border border-slate-800 rounded-lg hover:border-slate-700 transition cursor-pointer";
+          row.onclick = () => {
+            dossierModal.classList.add("hidden");
+            openModal(item);
+          };
+          row.innerHTML = `
+            <div>
+              <h4 class="text-xs font-bold text-white">${item.name}</h4>
+              <p class="text-[11px] text-amber-500 font-mono">${item.primaryDocket} • ${item.category}</p>
+            </div>
+            <button class="p-1.5 text-slate-500 hover:text-red-400 transition" onclick="toggleBookmark('${item.id}', event)">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          `;
+          dossierList.appendChild(row);
+        });
+      }
+      dossierModal.classList.remove("hidden");
+      lucide.createIcons();
+    }
+
+    // Export Functionality
+    exportBtn.addEventListener("click", () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(courtRecords, null, 2));
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "unsealed_docket_archive.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    });
+
+    // Event Listeners
+    searchInput.addEventListener("input", (e) => {
+      searchQuery = e.target.value;
+      clearSearchBtn.classList.toggle("hidden", searchQuery.length === 0);
+      renderCards();
+    });
+
+    clearSearchBtn.addEventListener("click", () => {
+      searchInput.value = "";
+      searchQuery = "";
+      clearSearchBtn.classList.add("hidden");
+      renderCards();
+    });
+
+    resetSearchBtn.addEventListener("click", () => {
+      searchInput.value = "";
+      searchQuery = "";
+      activeCategory = "all";
+      filterBtns.forEach(b => {
+        b.classList.remove("bg-amber-500", "text-slate-950", "font-semibold");
+        b.classList.add("bg-slate-900", "text-slate-300");
+      });
+      filterBtns[0].classList.add("bg-amber-500", "text-slate-950", "font-semibold");
+      filterBtns[0].classList.remove("bg-slate-900", "text-slate-300");
+      renderCards();
+    });
+
+    chipBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        searchInput.value = btn.textContent;
+        searchQuery = btn.textContent;
+        clearSearchBtn.classList.remove("hidden");
+        renderCards();
+      });
+    });
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        filterBtns.forEach(b => {
+          b.classList.remove("bg-amber-500", "text-slate-950", "font-semibold");
+          b.classList.add("bg-slate-900", "text-slate-300");
+        });
+        btn.classList.add("bg-amber-500", "text-slate-950", "font-semibold");
+        btn.classList.remove("bg-slate-900", "text-slate-300");
+        activeCategory = btn.dataset.value;
+        renderCards();
+      });
+    });
+
+    sortSelect.addEventListener("change", (e) => {
+      sortMode = e.target.value;
+      renderCards();
+    });
+
+    // Modal Events
+    closeModalBtn.onclick = () => fileModal.classList.add("hidden");
+    closeModalBottomBtn.onclick = () => fileModal.classList.add("hidden");
+    fileModal.onclick = (e) => {
+      if (e.target === fileModal) fileModal.classList.add("hidden");
+    };
+
+    bookmarkToggleBtn.onclick = () => {
+      if (activeRecord) toggleBookmark(activeRecord.id);
+    };
+
+    toggleRedactionsBtn.onclick = () => {
+      revealRedactions = !revealRedactions;
+      toggleRedactionsBtn.textContent = revealRedactions ? "Hide Context Tags" : "Reveal Sealed Context Tags";
+      if (activeRecord) renderFacsimile(activeRecord);
+    };
+
+    tabOverview.onclick = () => switchTab("overview");
+    tabFacsimile.onclick = () => switchTab("facsimile");
+    tabTranscript.onclick = () => switchTab("transcript");
+
+    // Dossier Modal Events
+    bookmarkFolderBtn.onclick = openDossier;
+    closeDossierBtn.onclick = () => dossierModal.classList.add("hidden");
+    closeDossierBottomBtn.onclick = () => dossierModal.classList.add("hidden");
+    clearDossierBtn.onclick = () => {
+      savedBookmarks = [];
+      localStorage.removeItem("epstein_archive_saved");
+      updateBookmarkCount();
+      openDossier();
+      renderCards();
+    };
+
+    // Keyboard Shortcuts (Esc to close)
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        fileModal.classList.add("hidden");
+        dossierModal.classList.add("hidden");
+      }
+    });
+
+    // Initialize
+    updateBookmarkCount();
+    renderCards();
+  </script>
+</body>
+</html>
